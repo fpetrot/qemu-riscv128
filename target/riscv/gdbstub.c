@@ -50,12 +50,14 @@ int riscv_cpu_gdb_read_register(CPUState *cs, GByteArray *mem_buf, int n)
 {
     RISCVCPU *cpu = RISCV_CPU(cs);
     CPURISCVState *env = &cpu->env;
-    target_ulong tmp;
+    target_ulong tmp, tmph;
 
     if (n < 32) {
         tmp = env->gpr[n];
+        tmph = env->gprh[n];
     } else if (n == 32) {
         tmp = env->pc;
+        tmph = 0;
     } else {
         return 0;
     }
@@ -64,8 +66,9 @@ int riscv_cpu_gdb_read_register(CPUState *cs, GByteArray *mem_buf, int n)
     case MXL_RV32:
         return gdb_get_reg32(mem_buf, tmp);
     case MXL_RV64:
-    case MXL_RV128:
         return gdb_get_reg64(mem_buf, tmp);
+    case MXL_RV128:
+        return gdb_get_reg128(mem_buf, tmph, tmp);
     default:
         g_assert_not_reached();
     }
@@ -77,7 +80,7 @@ int riscv_cpu_gdb_write_register(CPUState *cs, uint8_t *mem_buf, int n)
     RISCVCPU *cpu = RISCV_CPU(cs);
     CPURISCVState *env = &cpu->env;
     int length = 0;
-    target_ulong tmp;
+    target_ulong tmp, tmph = 0;
 
     switch (env->misa_mxl_max) {
     case MXL_RV32:
@@ -85,7 +88,6 @@ int riscv_cpu_gdb_write_register(CPUState *cs, uint8_t *mem_buf, int n)
         length = 4;
         break;
     case MXL_RV64:
-    case MXL_RV128:
         if (env->xl < MXL_RV64) {
             tmp = (int32_t)ldq_p(mem_buf);
         } else {
@@ -93,11 +95,29 @@ int riscv_cpu_gdb_write_register(CPUState *cs, uint8_t *mem_buf, int n)
         }
         length = 8;
         break;
+    case MXL_RV128:
+        switch (env->xl) {
+        case MXL_RV32:
+            tmp = (int32_t)ldq_p(mem_buf);
+            break;
+        case MXL_RV64:
+            tmp = ldq_p(mem_buf);
+            break;
+        case MXL_RV128:
+            tmp = ldq_p(mem_buf);
+            tmph = ldq_p(mem_buf + 8);
+            break;
+        default:
+            g_assert_not_reached();
+        }
+        length = 16;
+        break;
     default:
         g_assert_not_reached();
     }
     if (n > 0 && n < 32) {
         env->gpr[n] = tmp;
+        env->gprh[n] = tmph;
     } else if (n == 32) {
         env->pc = tmp;
     }
@@ -422,10 +442,14 @@ void riscv_cpu_register_gdb_regs_for_features(CPUState *cs)
                                  1, "riscv-32bit-virtual.xml", 0);
         break;
     case MXL_RV64:
-    case MXL_RV128:
         gdb_register_coprocessor(cs, riscv_gdb_get_virtual,
                                  riscv_gdb_set_virtual,
                                  1, "riscv-64bit-virtual.xml", 0);
+        break;
+    case MXL_RV128:
+        gdb_register_coprocessor(cs, riscv_gdb_get_virtual,
+                                 riscv_gdb_set_virtual,
+                                 1, "riscv-128bit-virtual.xml", 0);
         break;
     default:
         g_assert_not_reached();
