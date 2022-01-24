@@ -157,8 +157,11 @@ static void riscv_cpu_validate_misa_mxl(RISCVCPU *cpu, Error **errp)
     /* Validate that MISA_MXL is set properly. */
     switch (env->misa_mxl_max) {
 #ifdef TARGET_RISCV64
-    case MXL_RV64:
     case MXL_RV128:
+        cc->gdb_core_xml_file = "riscv-128bit-cpu.xml";
+        break;
+
+    case MXL_RV64:
         cc->gdb_core_xml_file = "riscv-64bit-cpu.xml";
         break;
 #endif
