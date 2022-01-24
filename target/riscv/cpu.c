@@ -1181,8 +1181,10 @@ static void riscv_cpu_validate_misa_mxl(RISCVCPUClass *mcc)
     /* Validate that MISA_MXL is set properly. */
     switch (mcc->def->misa_mxl_max) {
 #ifdef TARGET_RISCV64
-    case MXL_RV64:
     case MXL_RV128:
+        cc->gdb_core_xml_file = "riscv-128bit-cpu.xml";
+        break;
+    case MXL_RV64:
         cc->gdb_core_xml_file = "riscv-64bit-cpu.xml";
         break;
 #endif
@@ -2691,8 +2693,9 @@ static const gchar *riscv_gdb_arch_name(CPUState *cs)
     case MXL_RV32:
         return "riscv:rv32";
     case MXL_RV64:
-    case MXL_RV128:
         return "riscv:rv64";
+    case MXL_RV128:
+        return "riscv:rv128";
     default:
         g_assert_not_reached();
     }
