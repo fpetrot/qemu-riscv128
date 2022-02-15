@@ -925,8 +925,9 @@ static gchar *riscv_gdb_arch_name(CPUState *cs)
     case MXL_RV32:
         return g_strdup("riscv:rv32");
     case MXL_RV64:
-    case MXL_RV128:
         return g_strdup("riscv:rv64");
+    case MXL_RV128:
+        return g_strdup("riscv:rv128");
     default:
         g_assert_not_reached();
     }
