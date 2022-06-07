@@ -1,3 +1,5 @@
+/* Swapping bytes does not depend on signedness, so disable warning */
+#pragma GCC diagnostic ignored "-Wpointer-sign"
 static void glue(bswap_ehdr, SZ)(struct elfhdr *ehdr)
 {
     bswap16s(&ehdr->e_type);      /* Object file type */
@@ -55,6 +57,7 @@ static void glue(bswap_rela, SZ)(struct elf_rela *rela)
     bswapSZs(&rela->r_info);
     bswapSZs((elf_word *)&rela->r_addend);
 }
+#pragma GCC diagnostic pop
 
 static struct elf_shdr *glue(find_section, SZ)(struct elf_shdr *shdr_table,
                                                int n, int type)
@@ -245,11 +248,15 @@ static int glue(elf_reloc, SZ)(struct elfhdr *ehdr, int fd, int must_swab,
             case R_390_RELATIVE:
                 wordval = *(elf_word *)addr;
                 if (must_swab) {
+#pragma GCC diagnostic ignored "-Wpointer-sign"
                     bswapSZs(&wordval);
+#pragma GCC diagnostic pop
                 }
                 wordval = translate_fn(translate_opaque, wordval);
                 if (must_swab) {
+#pragma GCC diagnostic ignored "-Wpointer-sign"
                     bswapSZs(&wordval);
+#pragma GCC diagnostic pop
                 }
                 *(elf_word *)addr = wordval;
                 break;
@@ -312,6 +319,16 @@ static struct elf_note *glue(get_elf_note_type, SZ)(struct elf_note *nhdr,
     return nhdr;
 }
 
+/*
+ * Macro to read the headers field by field to ensure portability, as
+ * the compiler might add some space for alignment in the struct,
+ * making the one-time read of the header impossible
+ */
+#define READ_ELF(fd, field)                                 \
+    if (read(fd, &field, sizeof(field)) != sizeof(field)) { \
+        goto fail;                                          \
+    }
+
 static ssize_t glue(load_elf, SZ)(const char *name, int fd,
                                   uint64_t (*elf_note_fn)(void *, void *, bool),
                                   uint64_t (*translate_fn)(void *, uint64_t),
@@ -333,8 +350,21 @@ static ssize_t glue(load_elf, SZ)(const char *name, int fd,
     uint8_t *data = NULL;
     ssize_t ret = ELF_LOAD_FAILED;
 
-    if (read(fd, &ehdr, sizeof(ehdr)) != sizeof(ehdr))
-        goto fail;
+    READ_ELF(fd, ehdr.e_ident);
+    READ_ELF(fd, ehdr.e_type);
+    READ_ELF(fd, ehdr.e_machine);
+    READ_ELF(fd, ehdr.e_version);
+    READ_ELF(fd, ehdr.e_entry);
+    READ_ELF(fd, ehdr.e_phoff);
+    READ_ELF(fd, ehdr.e_shoff);
+    READ_ELF(fd, ehdr.e_flags);
+    READ_ELF(fd, ehdr.e_ehsize);
+    READ_ELF(fd, ehdr.e_phentsize);
+    READ_ELF(fd, ehdr.e_phnum);
+    READ_ELF(fd, ehdr.e_shentsize);
+    READ_ELF(fd, ehdr.e_shnum);
+    READ_ELF(fd, ehdr.e_shstrndx);
+
     if (must_swab) {
         glue(bswap_ehdr, SZ)(&ehdr);
     }
@@ -400,8 +430,18 @@ static ssize_t glue(load_elf, SZ)(const char *name, int fd,
     phdr = g_malloc0(size);
     if (!phdr)
         goto fail;
-    if (read(fd, phdr, size) != size)
-        goto fail;
+
+    for (i = 0; i < ehdr.e_phnum; i++) {
+        READ_ELF(fd, phdr[i].p_type);
+        READ_ELF(fd, phdr[i].p_flags);
+        READ_ELF(fd, phdr[i].p_offset);
+        READ_ELF(fd, phdr[i].p_vaddr);
+        READ_ELF(fd, phdr[i].p_paddr);
+        READ_ELF(fd, phdr[i].p_filesz);
+        READ_ELF(fd, phdr[i].p_memsz);
+        READ_ELF(fd, phdr[i].p_align);
+    }
+
     if (must_swab) {
         for(i = 0; i < ehdr.e_phnum; i++) {
             ph = &phdr[i];
@@ -512,6 +552,9 @@ static ssize_t glue(load_elf, SZ)(const char *name, int fd,
                         break;
                     case (3):
                         *(uint64_t *)dp = bswap64(*(uint64_t *)dp);
+                        break;
+                    case (4):
+                        *(__uint128_t *)dp = bswap128(*(__uint128_t *)dp);
                         break;
                     default:
                         g_assert_not_reached();

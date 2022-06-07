@@ -344,6 +344,28 @@ static void *load_at(int fd, off_t offset, size_t size)
 #define SZ              64
 #include "hw/elf_ops.h.inc"
 
+#undef elfhdr
+#undef elf_phdr
+#undef elf_shdr
+#undef elf_sym
+#undef elf_rela
+#undef elf_note
+#undef elf_word
+#undef elf_sword
+#undef bswapSZs
+#undef SZ
+#define elfhdr          elf128_hdr
+#define elf_phdr        elf128_phdr
+#define elf_note        elf128_note
+#define elf_shdr        elf128_shdr
+#define elf_sym         elf128_sym
+#define elf_rela        elf128_rela
+#define elf_word        __uint128_t
+#define elf_sword        __int128_t
+#define bswapSZs        bswap128s
+#define SZ                128
+#include "hw/elf_ops.h.inc"
+
 const char *load_elf_strerror(ssize_t error)
 {
     switch (error) {
@@ -486,7 +508,13 @@ ssize_t load_elf_ram_sym(const char *filename,
     must_swab = host_data_order != e_ident[EI_DATA];
 
     lseek(fd, 0, SEEK_SET);
-    if (e_ident[EI_CLASS] == ELFCLASS64) {
+    if (e_ident[EI_CLASS] == ELFCLASS128) {
+        ret = load_elf128(filename, fd, elf_note_fn,
+                         translate_fn, translate_opaque, must_swab,
+                         pentry, lowaddr, highaddr, pflags, elf_machine,
+                         clear_lsb, data_swab, as, load_rom, sym_cb);
+    }
+    else if (e_ident[EI_CLASS] == ELFCLASS64) {
         ret = load_elf64(filename, fd, elf_note_fn,
                          translate_fn, translate_opaque, must_swab,
                          pentry, lowaddr, highaddr, pflags, elf_machine,

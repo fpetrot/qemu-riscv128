@@ -1688,8 +1688,10 @@ static const char *lookup_symbolxx(struct syminfo *s, uint64_t orig_addr)
 {
 #if ELF_CLASS == ELFCLASS32
     struct elf_sym *syms = s->disas_symtab.elf32;
-#else
+#elif ELF_CLASS == ELFCLASS64
     struct elf_sym *syms = s->disas_symtab.elf64;
+#else
+    struct elf_sym *syms = s->disas_symtab.elf128;
 #endif
 
     // binary search
@@ -1817,8 +1819,10 @@ static void load_symbols(struct elfhdr *hdr, const ImageSource *src,
         s->disas_num_syms = nsyms;
 #if ELF_CLASS == ELFCLASS32
         s->disas_symtab.elf32 = syms;
-#else
+#elif ELF_CLASS == ELFCLASS64
         s->disas_symtab.elf64 = syms;
+#else
+        s->disas_symtab.elf128 = syms;
 #endif
         s->lookup_symbol = lookup_symbolxx;
         s->next = syminfos;

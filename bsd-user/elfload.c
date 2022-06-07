@@ -368,8 +368,10 @@ static const char *lookup_symbolxx(struct syminfo *s, uint64_t orig_addr)
 {
 #if ELF_CLASS == ELFCLASS32
     struct elf_sym *syms = s->disas_symtab.elf32;
-#else
+#elif ELF_CLASS == ELFCLASS64
     struct elf_sym *syms = s->disas_symtab.elf64;
+#else
+    struct elf_sym *syms = s->disas_symtab.elf128;
 #endif
 
     /* binary search */
@@ -493,8 +495,11 @@ found:
 #if ELF_CLASS == ELFCLASS32
     s->disas_symtab.elf32 = syms;
     s->lookup_symbol = (lookup_symbol_t)lookup_symbolxx;
-#else
+#if ELF_CLASS == ELFCLASS64
     s->disas_symtab.elf64 = syms;
+    s->lookup_symbol = (lookup_symbol_t)lookup_symbolxx;
+#else
+    s->disas_symtab.elf128 = syms;
     s->lookup_symbol = (lookup_symbol_t)lookup_symbolxx;
 #endif
     s->next = syminfos;
