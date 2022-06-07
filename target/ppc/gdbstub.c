@@ -102,7 +102,7 @@ void ppc_maybe_bswap_register(CPUPPCState *env, uint8_t *mem_buf, int len)
     } else if (len == 8) {
         bswap64s((uint64_t *)mem_buf);
     } else if (len == 16) {
-        bswap128s((Int128 *)mem_buf);
+        bswap128s((__uint128_t *)mem_buf);
     } else {
         g_assert_not_reached();
     }

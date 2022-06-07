@@ -425,7 +425,7 @@ Int128 int128_rems(Int128, Int128);
 
 #endif /* CONFIG_INT128 */
 
-static inline void bswap128s(Int128 *s)
+static inline void bswap128s(__uint128_t *s)
 {
     *s = bswap128(*s);
 }

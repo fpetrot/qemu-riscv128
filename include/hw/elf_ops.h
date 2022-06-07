@@ -333,8 +333,20 @@ static ssize_t glue(load_elf, SZ)(const char *name, int fd,
     uint8_t *data = NULL;
     ssize_t ret = ELF_LOAD_FAILED;
 
+#if SZ == 128
+    if (read(fd, &ehdr, sizeof(ehdr) - sizeof(uint64_t)) != (sizeof(ehdr) - sizeof(uint64_t)))
+          goto fail;
+    int mock_index = offsetof(struct elfhdr, e_mock);;
+//    int mock_index = (int) ((void *) &ehdr.e_mock - (void *) &ehdr);
+
+    char *ehdr_buffer = (char *) &ehdr;
+    for (int i = sizeof(ehdr) - sizeof(uint64_t) - 1; i >= mock_index; i--) {
+        ehdr_buffer[i + sizeof(uint64_t)] = ehdr_buffer[i];
+    }
+#else
     if (read(fd, &ehdr, sizeof(ehdr)) != sizeof(ehdr))
-        goto fail;
+      goto fail;
+#endif
     if (must_swab) {
         glue(bswap_ehdr, SZ)(&ehdr);
     }
@@ -399,8 +411,24 @@ static ssize_t glue(load_elf, SZ)(const char *name, int fd,
     phdr = g_malloc0(size);
     if (!phdr)
         goto fail;
-    if (read(fd, phdr, size) != size)
-        goto fail;
+#if SZ == 128
+    if (read(fd, phdr, size - ehdr.e_phnum * sizeof(uint64_t)) != (size - ehdr.e_phnum * sizeof(uint64_t)))
+            goto fail;
+
+    mock_index = offsetof(struct elf_phdr, e_mock);
+    char *phdr_buffer = (char *) phdr;
+    for (int i = size - ehdr.e_phnum * sizeof(uint64_t) - 1; i >= 0; i--) {
+        int phdr_index = i / (sizeof(phdr[0]) - sizeof(uint64_t));
+        int byte_offset = i % (sizeof(phdr[0]) - sizeof(uint64_t));
+        if (byte_offset >= mock_index)
+          phdr_buffer[phdr_index*sizeof(phdr[0]) + byte_offset + sizeof(uint64_t)] = phdr_buffer[i];
+        else
+          phdr_buffer[phdr_index*sizeof(phdr[0]) + byte_offset] = phdr_buffer[i];
+    }
+#else
+  if (read(fd, phdr, size) != size)
+    goto fail;
+#endif
     if (must_swab) {
         for(i = 0; i < ehdr.e_phnum; i++) {
             ph = &phdr[i];
@@ -511,6 +539,9 @@ static ssize_t glue(load_elf, SZ)(const char *name, int fd,
                         break;
                     case (3):
                         *(uint64_t *)dp = bswap64(*(uint64_t *)dp);
+                        break;
+                    case (4):
+                        *(__uint128_t *)dp = bswap128(*(__uint128_t *)dp);
                         break;
                     default:
                         g_assert_not_reached();
