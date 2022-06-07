@@ -30,6 +30,7 @@ struct syminfo {
     union {
       struct elf32_sym *elf32;
       struct elf64_sym *elf64;
+      struct elf128_sym *elf128;
     } disas_symtab;
     const char *disas_strtab;
     struct syminfo *next;
