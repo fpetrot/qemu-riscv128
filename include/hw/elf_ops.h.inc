@@ -350,21 +350,8 @@ static ssize_t glue(load_elf, SZ)(const char *name, int fd,
     uint8_t *data = NULL;
     ssize_t ret = ELF_LOAD_FAILED;
 
-    READ_ELF(fd, ehdr.e_ident);
-    READ_ELF(fd, ehdr.e_type);
-    READ_ELF(fd, ehdr.e_machine);
-    READ_ELF(fd, ehdr.e_version);
-    READ_ELF(fd, ehdr.e_entry);
-    READ_ELF(fd, ehdr.e_phoff);
-    READ_ELF(fd, ehdr.e_shoff);
-    READ_ELF(fd, ehdr.e_flags);
-    READ_ELF(fd, ehdr.e_ehsize);
-    READ_ELF(fd, ehdr.e_phentsize);
-    READ_ELF(fd, ehdr.e_phnum);
-    READ_ELF(fd, ehdr.e_shentsize);
-    READ_ELF(fd, ehdr.e_shnum);
-    READ_ELF(fd, ehdr.e_shstrndx);
-
+    if (read(fd, &ehdr, sizeof(ehdr)) != sizeof(ehdr))
+	goto fail;
     if (must_swab) {
         glue(bswap_ehdr, SZ)(&ehdr);
     }
@@ -431,16 +418,8 @@ static ssize_t glue(load_elf, SZ)(const char *name, int fd,
     if (!phdr)
         goto fail;
 
-    for (i = 0; i < ehdr.e_phnum; i++) {
-        READ_ELF(fd, phdr[i].p_type);
-        READ_ELF(fd, phdr[i].p_flags);
-        READ_ELF(fd, phdr[i].p_offset);
-        READ_ELF(fd, phdr[i].p_vaddr);
-        READ_ELF(fd, phdr[i].p_paddr);
-        READ_ELF(fd, phdr[i].p_filesz);
-        READ_ELF(fd, phdr[i].p_memsz);
-        READ_ELF(fd, phdr[i].p_align);
-    }
+    if (read(fd, phdr, size) != size)
+        goto fail;
 
     if (must_swab) {
         for(i = 0; i < ehdr.e_phnum; i++) {
