@@ -1506,12 +1506,13 @@ typedef struct elf64_sym {
 } Elf64_Sym;
 
 typedef struct elf128_sym {
+  Elf128_Addr st_value;		/* Value of the symbol */
+  Elf128_Xxword st_size;	/* Associated symbol size */
   Elf128_Word st_name;		/* Symbol name, index in string tbl */
   unsigned char	st_info;	/* Type and binding attributes */
   unsigned char	st_other;	/* No defined meaning, 0 */
   Elf128_Half st_shndx;		/* Associated section index */
-  Elf128_Addr st_value;		/* Value of the symbol */
-  Elf128_Xxword st_size;		/* Associated symbol size */
+  Elf128_Xword st_reserved;     /* padding */
 } Elf128_Sym;
 
 
@@ -1561,12 +1562,12 @@ typedef struct elf128_hdr {
   Elf128_Half e_type;
   Elf128_Half e_machine;
   Elf128_Word e_version;
-  Elf128_Addr e_entry;		/* Entry point virtual address */
-  Elf128_Off e_phoff;		/* Program header table file offset */
-  Elf128_Off e_shoff;		/* Section header table file offset */
   Elf128_Word e_flags;
   Elf128_Half e_ehsize;
   Elf128_Half e_phentsize;
+  Elf128_Addr e_entry;		/* Entry point virtual address */
+  Elf128_Off e_phoff;		/* Program header table file offset */
+  Elf128_Off e_shoff;		/* Section header table file offset */
   Elf128_Half e_phnum;
   Elf128_Half e_shentsize;
   Elf128_Half e_shnum;
@@ -1602,14 +1603,15 @@ typedef struct elf64_phdr {
 } Elf64_Phdr;
 
 typedef struct elf128_phdr {
+  Elf128_Off p_offset;		/* Segment file offset */
+  Elf128_Addr p_vaddr;		/* Segment virtual address */
+  Elf128_Addr p_paddr;		/* Segment physical address */
+  Elf128_Xxword p_filesz;	/* Segment size in file */
+  Elf128_Xxword p_memsz;	/* Segment size in memory */
+  Elf128_Xxword p_align;	/* Segment alignment, file & memory */
   Elf128_Word p_type;
   Elf128_Word p_flags;
-  Elf128_Off p_offset;
-  Elf128_Addr p_vaddr;
-  Elf128_Addr p_paddr;
-  Elf128_Xxword p_filesz;
-  Elf128_Xxword p_memsz;
-  Elf128_Xxword p_align;
+  Elf128_Xword p_reserved;
 } Elf128_Phdr;
 
 /* sh_type */
@@ -1681,12 +1683,12 @@ typedef struct elf64_shdr {
 typedef struct elf128_shdr {
   Elf128_Word sh_name;		/* Section name, index in string tbl */
   Elf128_Word sh_type;		/* Type of section */
+  Elf128_Word sh_link;		/* Index of another section */
+  Elf128_Word sh_info;		/* Additional section information */
   Elf128_Xxword sh_flags;		/* Miscellaneous section attributes */
   Elf128_Addr sh_addr;		/* Section virtual addr at execution */
   Elf128_Off sh_offset;		/* Section file offset */
   Elf128_Xxword sh_size;		/* Size of section in bytes */
-  Elf128_Word sh_link;		/* Index of another section */
-  Elf128_Word sh_info;		/* Additional section information */
   Elf128_Xxword sh_addralign;	/* Section alignment */
   Elf128_Xxword sh_entsize;	/* Entry size if section holds table */
 } Elf128_Shdr;
