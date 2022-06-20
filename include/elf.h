@@ -21,9 +21,9 @@ typedef int64_t  Elf64_Sxword;
 /* 128-bit ELF base types. */
 typedef __uint128_t Elf128_Addr;
 typedef uint16_t Elf128_Half;
-typedef int16_t	 Elf128_SHalf;
+typedef int16_t  Elf128_SHalf;
 typedef __uint128_t Elf128_Off;
-typedef int32_t	 Elf128_Sword;
+typedef int32_t  Elf128_Sword;
 typedef uint32_t Elf128_Word;
 typedef uint64_t Elf128_Xword;
 typedef int64_t  Elf128_Sxword;
@@ -319,12 +319,12 @@ typedef struct mips_elf_abiflags_v0 {
 #define ELF_ST_BIND(x)          ((x) >> 4)
 #define ELF_ST_TYPE(x)          (((unsigned int) x) & 0xf)
 #define ELF_ST_INFO(bind, type) (((bind) << 4) | ((type) & 0xf))
-#define ELF32_ST_BIND(x)	ELF_ST_BIND(x)
-#define ELF32_ST_TYPE(x)	ELF_ST_TYPE(x)
-#define ELF64_ST_BIND(x)	ELF_ST_BIND(x)
-#define ELF64_ST_TYPE(x)	ELF_ST_TYPE(x)
-#define ELF128_ST_BIND(x)	ELF_ST_BIND(x)
-#define ELF128_ST_TYPE(x)	ELF_ST_TYPE(x)
+#define ELF32_ST_BIND(x)        ELF_ST_BIND(x)
+#define ELF32_ST_TYPE(x)        ELF_ST_TYPE(x)
+#define ELF64_ST_BIND(x)        ELF_ST_BIND(x)
+#define ELF64_ST_TYPE(x)        ELF_ST_TYPE(x)
+#define ELF128_ST_BIND(x)       ELF_ST_BIND(x)
+#define ELF128_ST_TYPE(x)       ELF_ST_TYPE(x)
 
 /* Symbolic values for the entries in the auxiliary table
    put on the initial stack */
@@ -380,7 +380,7 @@ typedef struct {
 } Elf64_Dyn;
 
 typedef struct {
-    Elf128_Sxxword d_tag;		/* entry tag value */
+    Elf128_Sxxword d_tag;               /* entry tag value */
     union {
         Elf128_Xxword d_val;
         Elf128_Addr d_ptr;
@@ -1500,8 +1500,8 @@ typedef struct elf64_rel {
 } Elf64_Rel;
 
 typedef struct elf128_rel {
-  Elf128_Addr r_offset;	/* Location at which to apply the action */
-  Elf128_Xxword r_info;	/* index and type of relocation */
+  Elf128_Addr r_offset;     /* Location at which to apply the action */
+  Elf128_Xxword r_info;     /* index and type of relocation */
 } Elf128_Rel;
 
 typedef struct elf32_rela{
@@ -1517,9 +1517,9 @@ typedef struct elf64_rela {
 } Elf64_Rela;
 
 typedef struct elf128_rela {
-  Elf128_Addr r_offset;	/* Location at which to apply the action */
-  Elf128_Xxword r_info;	/* index and type of relocation */
-  Elf128_Sxxword r_addend;	/* Constant addend used to compute value */
+  Elf128_Addr r_offset;     /* Location at which to apply the action */
+  Elf128_Xxword r_info;     /* index and type of relocation */
+  Elf128_Sxxword r_addend;  /* Constant addend used to compute value */
 } Elf128_Rela;
 
 
@@ -1542,12 +1542,13 @@ typedef struct elf64_sym {
 } Elf64_Sym;
 
 typedef struct elf128_sym {
-  Elf128_Word st_name;		/* Symbol name, index in string tbl */
-  unsigned char	st_info;	/* Type and binding attributes */
-  unsigned char	st_other;	/* No defined meaning, 0 */
-  Elf128_Half st_shndx;		/* Associated section index */
-  Elf128_Addr st_value;		/* Value of the symbol */
-  Elf128_Xxword st_size;		/* Associated symbol size */
+  Elf128_Word st_name;      /* Symbol name, index in string tbl */
+  unsigned char st_info;    /* Type and binding attributes */
+  unsigned char st_other;   /* No defined meaning, 0 */
+  Elf128_Half st_shndx;     /* Associated section index */
+  Elf128_Xword st_reserved; /* padding */
+  Elf128_Addr st_value;     /* Value of the symbol */
+  Elf128_Xxword st_size;    /* Associated symbol size */
 } Elf128_Sym;
 
 
@@ -1593,16 +1594,16 @@ typedef struct elf64_hdr {
 } Elf64_Ehdr;
 
 typedef struct elf128_hdr {
-  unsigned char	e_ident[16];		/* ELF "magic number" */
+  unsigned char e_ident[16];    /* ELF "magic number" */
   Elf128_Half e_type;
   Elf128_Half e_machine;
   Elf128_Word e_version;
-  Elf128_Addr e_entry;		/* Entry point virtual address */
-  Elf128_Off e_phoff;		/* Program header table file offset */
-  Elf128_Off e_shoff;		/* Section header table file offset */
   Elf128_Word e_flags;
   Elf128_Half e_ehsize;
   Elf128_Half e_phentsize;
+  Elf128_Addr e_entry;          /* Entry point virtual address */
+  Elf128_Off e_phoff;           /* Program header table file offset */
+  Elf128_Off e_shoff;           /* Section header table file offset */
   Elf128_Half e_phnum;
   Elf128_Half e_shentsize;
   Elf128_Half e_shnum;
@@ -1640,12 +1641,13 @@ typedef struct elf64_phdr {
 typedef struct elf128_phdr {
   Elf128_Word p_type;
   Elf128_Word p_flags;
-  Elf128_Off p_offset;
-  Elf128_Addr p_vaddr;
-  Elf128_Addr p_paddr;
-  Elf128_Xxword p_filesz;
-  Elf128_Xxword p_memsz;
-  Elf128_Xxword p_align;
+  Elf128_Xword p_reserved;  /* padding */
+  Elf128_Off p_offset;      /* Segment file offset */
+  Elf128_Addr p_vaddr;      /* Segment virtual address */
+  Elf128_Addr p_paddr;      /* Segment physical address */
+  Elf128_Xxword p_filesz;   /* Segment size in file */
+  Elf128_Xxword p_memsz;    /* Segment size in memory */
+  Elf128_Xxword p_align;    /* Segment alignment, file & memory */
 } Elf128_Phdr;
 
 /* sh_type */
@@ -1848,9 +1850,9 @@ typedef struct elf64_note {
 
 /* Note header in a PT_NOTE section */
 typedef struct elf128_note {
-  Elf128_Word n_namesz;	/* Name size */
-  Elf128_Word n_descsz;	/* Content size */
-  Elf128_Word n_type;	/* Content type */
+  Elf128_Word n_namesz; /* Name size */
+  Elf128_Word n_descsz; /* Content size */
+  Elf128_Word n_type;   /* Content type */
 } Elf128_Nhdr;
 
 
@@ -1907,13 +1909,13 @@ struct elf32_fdpic_loadmap {
 
 #else
 
-#define elfhdr		elf128_hdr
-#define elf_phdr	elf128_phdr
-#define elf_note	elf128_note
-#define elf_shdr	elf128_shdr
-#define elf_sym		elf128_sym
-#define elf_addr_t	Elf128_Off
-#define elf_rela  elf128_rela
+#define elfhdr      elf128_hdr
+#define elf_phdr    elf128_phdr
+#define elf_note    elf128_note
+#define elf_shdr    elf128_shdr
+#define elf_sym     elf128_sym
+#define elf_addr_t  Elf128_Off
+#define elf_rela    elf128_rela
 
 #ifdef ELF_USES_RELOCA
 # define ELF_RELOC      Elf128_Rela
