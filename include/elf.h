@@ -1506,13 +1506,13 @@ typedef struct elf64_sym {
 } Elf64_Sym;
 
 typedef struct elf128_sym {
-  Elf128_Addr st_value;		/* Value of the symbol */
-  Elf128_Xxword st_size;	/* Associated symbol size */
   Elf128_Word st_name;		/* Symbol name, index in string tbl */
   unsigned char	st_info;	/* Type and binding attributes */
   unsigned char	st_other;	/* No defined meaning, 0 */
   Elf128_Half st_shndx;		/* Associated section index */
   Elf128_Xword st_reserved;     /* padding */
+  Elf128_Addr st_value;		/* Value of the symbol */
+  Elf128_Xxword st_size;	/* Associated symbol size */
 } Elf128_Sym;
 
 
@@ -1603,15 +1603,15 @@ typedef struct elf64_phdr {
 } Elf64_Phdr;
 
 typedef struct elf128_phdr {
+  Elf128_Word p_type;
+  Elf128_Word p_flags;
+  Elf128_Xword p_reserved       /* padding */;
   Elf128_Off p_offset;		/* Segment file offset */
   Elf128_Addr p_vaddr;		/* Segment virtual address */
   Elf128_Addr p_paddr;		/* Segment physical address */
   Elf128_Xxword p_filesz;	/* Segment size in file */
   Elf128_Xxword p_memsz;	/* Segment size in memory */
   Elf128_Xxword p_align;	/* Segment alignment, file & memory */
-  Elf128_Word p_type;
-  Elf128_Word p_flags;
-  Elf128_Xword p_reserved;
 } Elf128_Phdr;
 
 /* sh_type */
