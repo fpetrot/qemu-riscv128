@@ -143,6 +143,8 @@ bne               111  ... ...  ..... 01 @cb_z
 }
 subw              100 1 11 ... 00 ... 01 @cs_2
 addw              100 1 11 ... 01 ... 01 @cs_2
+subd              100 1 11 ... 10 ... 01 @cs_2
+addd              100 1 11 ... 11 ... 01 @cs_2
 
 # *** RV32/64C Standard Extension (Quadrant 2) ***
 slli              000 .  .....  ..... 10 @c_shift2
