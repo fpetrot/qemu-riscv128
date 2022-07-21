@@ -2819,6 +2819,7 @@ static void decode_inst_operands(rv_decode *dec)
     };
 }
 
+#if 0
 /* check constraint */
 
 static bool check_constraints(rv_decode *dec, const rvc_constraint *c)
@@ -2923,6 +2924,7 @@ static bool check_constraints(rv_decode *dec, const rvc_constraint *c)
     }
     return true;
 }
+#endif
 
 /* instruction length */
 
@@ -3107,6 +3109,7 @@ static void format_inst(char *buf, size_t buflen, size_t tab, rv_decode *dec)
     }
 }
 
+#if 0
 /* lift instruction to pseudo-instruction */
 
 static void decode_inst_lift_pseudo(rv_decode *dec)
@@ -3124,6 +3127,7 @@ static void decode_inst_lift_pseudo(rv_decode *dec)
         comp_data++;
     }
 }
+#endif
 
 /* decompress instruction */
 
@@ -3195,7 +3199,10 @@ disasm_inst(char *buf, size_t buflen, rv_isa isa, uint64_t pc, rv_inst inst)
     decode_inst_opcode(&dec, isa);
     decode_inst_operands(&dec);
     decode_inst_decompress(&dec, isa);
+#if 0
+    /* We do not want pseudo ops! */
     decode_inst_lift_pseudo(&dec);
+#endif
     format_inst(buf, buflen, 16, &dec);
 }
 
