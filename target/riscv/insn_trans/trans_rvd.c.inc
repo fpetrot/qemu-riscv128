@@ -467,7 +467,7 @@ static bool trans_fcvt_d_wu(DisasContext *ctx, arg_fcvt_d_wu *a)
 
 static bool trans_fcvt_l_d(DisasContext *ctx, arg_fcvt_l_d *a)
 {
-    REQUIRE_64BIT(ctx);
+    REQUIRE_64_OR_128BIT(ctx);
     REQUIRE_FPU;
     REQUIRE_ZDINX_OR_D(ctx);
     REQUIRE_EVEN(ctx, a->rs1);
@@ -483,7 +483,7 @@ static bool trans_fcvt_l_d(DisasContext *ctx, arg_fcvt_l_d *a)
 
 static bool trans_fcvt_lu_d(DisasContext *ctx, arg_fcvt_lu_d *a)
 {
-    REQUIRE_64BIT(ctx);
+    REQUIRE_64_OR_128BIT(ctx);
     REQUIRE_FPU;
     REQUIRE_ZDINX_OR_D(ctx);
     REQUIRE_EVEN(ctx, a->rs1);
@@ -499,7 +499,7 @@ static bool trans_fcvt_lu_d(DisasContext *ctx, arg_fcvt_lu_d *a)
 
 static bool trans_fmv_x_d(DisasContext *ctx, arg_fmv_x_d *a)
 {
-    REQUIRE_64BIT(ctx);
+    REQUIRE_64_OR_128BIT(ctx);
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVD);
 
@@ -513,7 +513,7 @@ static bool trans_fmv_x_d(DisasContext *ctx, arg_fmv_x_d *a)
 
 static bool trans_fcvt_d_l(DisasContext *ctx, arg_fcvt_d_l *a)
 {
-    REQUIRE_64BIT(ctx);
+    REQUIRE_64_OR_128BIT(ctx);
     REQUIRE_FPU;
     REQUIRE_ZDINX_OR_D(ctx);
     REQUIRE_EVEN(ctx, a->rd);
@@ -531,7 +531,7 @@ static bool trans_fcvt_d_l(DisasContext *ctx, arg_fcvt_d_l *a)
 
 static bool trans_fcvt_d_lu(DisasContext *ctx, arg_fcvt_d_lu *a)
 {
-    REQUIRE_64BIT(ctx);
+    REQUIRE_64_OR_128BIT(ctx);
     REQUIRE_FPU;
     REQUIRE_ZDINX_OR_D(ctx);
     REQUIRE_EVEN(ctx, a->rd);
@@ -549,7 +549,7 @@ static bool trans_fcvt_d_lu(DisasContext *ctx, arg_fcvt_d_lu *a)
 
 static bool trans_fmv_d_x(DisasContext *ctx, arg_fmv_d_x *a)
 {
-    REQUIRE_64BIT(ctx);
+    REQUIRE_64_OR_128BIT(ctx);
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVD);
 
