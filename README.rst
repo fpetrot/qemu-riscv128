@@ -1,4 +1,38 @@
 ===========
+dev/dependencies branch info
+===========
+
+Tracking the dependencies is done under the form of a plugin in `contrib/plugins/trackdep.c`.
+It is quite heavy and currently generates huge traces.
+This might be simplified if needed, by generating substraces and eliminating the redundant ones as they are abundant within loops.
+(Subtree isomorphism is in O(n), where n is the number of nodes in the tree.)
+
+Here is a sample run of QEMU to produce the dependency trees:
+
+.. code-block:: shell
+
+  timeout 10 ./qemu-system-riscv64 -machine virt -nographic -accel tcg,thread=multi -smp cores=1 -m 8G -kernel ../../riscv/busybear-linux/build/linux-5.15.32-riscv64/arch/riscv/boot/Image -append "root=/dev/vda ro console=ttyS0" -drive file=../../riscv/busybear-linux/busybear-riscv64.bin,format=raw,id=hd0 -device virtio-blk-device,drive=hd0 -plugin file=./contrib/plugins/libtrackdep.so -d plugin 2> 1
+
+And here the first few results:
+
+.. code-block:: asm
+
+  0x0000100c 0202b583          ld              a1,32(t0)
+  0x00001000 00000297          auipc           t0,0
+  @@@@@@@@@@@@@@@@@
+  0x00001010 0182b283          ld              t0,24(t0)
+  0x00001000 00000297          auipc           t0,0
+  @@@@@@@@@@@@@@@@@
+  0x00001014 00028067          jalr            zero,t0,0
+  0x00001010 0182b283          ld              t0,24(t0)
+  0x00001000 00000297          auipc           t0,0
+  @@@@@@@@@@@@@@@@@
+  0x80000568 6208              ld              a0,0(a2)
+  0x00001004 02828613          addi            a2,t0,40
+  0x00001000 00000297          auipc           t0,0
+  @@@@@@@@@@@@@@@@@
+
+===========
 QEMU README
 ===========
 
