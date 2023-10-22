@@ -1,4 +1,15 @@
 ===========
+Elf128 Support in QEMU
+===========
+Upstream QEMU support the risc-v 128-bit extension, through the
+`-cpu=x-rv128` that allows executing the 128-bit related instructions.
+However, binaries are still expected to be in the Elf64 format since
+to the best of my knowlegde there is no (need for an) Elf128 format (yet).
+
+This is a fork of QEMU to support the Elf128 format that we have
+defined [here](https://github.com/fpetrot/riscv-gnu-toolchain/blob/docker-128-bit/elf128-spec.md).
+
+===========
 QEMU README
 ===========
 
