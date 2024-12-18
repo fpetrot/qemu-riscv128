@@ -67,7 +67,7 @@ enum EvictionPolicy policy;
 
 /*
  * All sets must share the same tagh, so, when adding or replacing a block,
- * check that its tagh matches the set tagh, otherwise invalidate all sets.
+ * check that its tagh matches the set tagh, otherwise invalidate all ways.
  */
 typedef struct {
     uint64_t tagl;
@@ -307,8 +307,8 @@ static Cache *cache_init(int blksize, int assoc, int cachesize, int taglsize)
     tag_mask = ~(cache->set_mask | blk_mask);
 
     /* This is where the magic takes place */
-    cache->tagh_mask = tag_mask & ~((1 << taglsize) - 1) << (set_shift + cache->blksize_shift);
-    cache->tagl_mask = tag_mask & ((1 << taglsize) - 1) << (set_shift + cache->blksize_shift);
+    cache->tagh_mask = tag_mask & ~((1L << taglsize) - 1) << (set_shift + cache->blksize_shift);
+    cache->tagl_mask = tag_mask & ((1L << taglsize) - 1) << (set_shift + cache->blksize_shift);
 
     for (i = 0; i < cache->num_sets; i++) {
         cache->sets[i].blocks = g_new0(CacheBlock, assoc);
@@ -375,9 +375,12 @@ static int in_cache(Cache *cache, uint64_t addr)
     tagl = extract_tagl(cache, addr);
     set = extract_set(cache, addr);
 
+    if (cache->sets[set].tagh != tagh) {
+        return -1;
+    }
+
     for (i = 0; i < cache->assoc; i++) {
-        if (cache->sets[set].tagh == tagh
-            && cache->sets[set].blocks[i].tagl == tagl
+        if (cache->sets[set].blocks[i].tagl == tagl
             && cache->sets[set].blocks[i].valid) {
             return i;
         }
