@@ -1287,7 +1287,9 @@ static bool riscv_tcg_cpu_realize(CPUState *cs, Error **errp)
 
     CPURISCVState *env = &cpu->env;
 
+#if 0
     tcg_cflags_set(CPU(cs), CF_PCREL);
+#endif
 
     if (cpu->cfg.ext_sstc) {
         riscv_timer_init(cpu);
