@@ -40,20 +40,20 @@ static inline void bswap64s(uint64_t *s)
 
 #if HOST_BIG_ENDIAN
 #define be_bswap(v, size) (v)
-#define le_bswap(v, size) glue(__builtin_bswap, size)(v)
+#define le_bswap(v, size) glue(bswap, size)(v)
 #define be_bswap24(v) (v)
 #define le_bswap24(v) bswap24(v)
 #define be_bswaps(v, size)
 #define le_bswaps(p, size) \
-            do { *p = glue(__builtin_bswap, size)(*p); } while (0)
+            do { *p = glue(bswap, size)(*p); } while (0)
 #else
 #define le_bswap(v, size) (v)
 #define be_bswap24(v) bswap24(v)
 #define le_bswap24(v) (v)
-#define be_bswap(v, size) glue(__builtin_bswap, size)(v)
+#define be_bswap(v, size) glue(bswap, size)(v)
 #define le_bswaps(v, size)
 #define be_bswaps(p, size) \
-            do { *p = glue(__builtin_bswap, size)(*p); } while (0)
+            do { *p = glue(bswap, size)(*p); } while (0)
 #endif
 
 /**
@@ -64,9 +64,11 @@ static inline void bswap64s(uint64_t *s)
  * uint16_t le16_to_cpu(uint16_t v);
  * uint32_t le32_to_cpu(uint32_t v);
  * uint64_t le64_to_cpu(uint64_t v);
+ * Int128 le128_to_cpu(Int128 v);
  * uint16_t be16_to_cpu(uint16_t v);
  * uint32_t be32_to_cpu(uint32_t v);
  * uint64_t be64_to_cpu(uint64_t v);
+ * Int128 be128_to_cpu(Int128 v);
  *
  * Convert the value @v from the specified format to the native
  * endianness of the host CPU by byteswapping if necessary, and
@@ -75,9 +77,11 @@ static inline void bswap64s(uint64_t *s)
  * uint16_t cpu_to_le16(uint16_t v);
  * uint32_t cpu_to_le32(uint32_t v);
  * uint64_t cpu_to_le64(uint64_t v);
+ * Int128 cpu_to_le128(Int128 v);
  * uint16_t cpu_to_be16(uint16_t v);
  * uint32_t cpu_to_be32(uint32_t v);
  * uint64_t cpu_to_be64(uint64_t v);
+ * Int128 cpu_to_be128(Int128 v);
  *
  * Convert the value @v from the native endianness of the host CPU to
  * the specified format by byteswapping if necessary, and return
@@ -86,9 +90,11 @@ static inline void bswap64s(uint64_t *s)
  * void le16_to_cpus(uint16_t *v);
  * void le32_to_cpus(uint32_t *v);
  * void le64_to_cpus(uint64_t *v);
+ * void le128_to_cpus(Int128 *v);
  * void be16_to_cpus(uint16_t *v);
  * void be32_to_cpus(uint32_t *v);
  * void be64_to_cpus(uint64_t *v);
+ * void be128_to_cpus(Int128 *v);
  *
  * Do an in-place conversion of the value pointed to by @v from the
  * specified format to the native endianness of the host CPU.
@@ -96,9 +102,11 @@ static inline void bswap64s(uint64_t *s)
  * void cpu_to_le16s(uint16_t *v);
  * void cpu_to_le32s(uint32_t *v);
  * void cpu_to_le64s(uint64_t *v);
+ * void cpu_to_le128s(Int128 *v);
  * void cpu_to_be16s(uint16_t *v);
  * void cpu_to_be32s(uint32_t *v);
  * void cpu_to_be64s(uint64_t *v);
+ * void cpu_to_be128s(Int128 *v);
  *
  * Do an in-place conversion of the value pointed to by @v from the
  * native endianness of the host CPU to the specified format.
@@ -138,19 +146,41 @@ static inline void cpu_to_ ## endian ## size ## s(type *p)\
 CPU_CONVERT(be, 16, uint16_t)
 CPU_CONVERT(be, 32, uint32_t)
 CPU_CONVERT(be, 64, uint64_t)
+CPU_CONVERT(be, 128, Int128)
 
 CPU_CONVERT(le, 16, uint16_t)
 CPU_CONVERT(le, 32, uint32_t)
 CPU_CONVERT(le, 64, uint64_t)
+CPU_CONVERT(le, 128, Int128)
 
 #undef CPU_CONVERT
 
 /*
- * Same as cpu_to_le{16,32,64}, except that gcc will figure the result is
+ * Same as cpu_to_le{16,32,64,128}, except that gcc will figure the result is
  * a compile-time constant if you pass in a constant.  So this can be
  * used to initialize static variables.
  */
 #if HOST_BIG_ENDIAN
+# define const_le128(_x)                                                               \
+    ({                                                                                 \
+     const Int128 _ = int128_make128(0xff, 0);                                         \
+     Int128 _r;                                                                        \
+     _r =               int128_lshift( int128_and((_x), int128_lshift(_,   0)), 120);  \
+     _r = int128_or(_r, int128_lshift( int128_and((_x), int128_lshift(_,   8)), 104)); \
+     _r = int128_or(_r, int128_lshift( int128_and((_x), int128_lshift(_,  16)),  88)); \
+     _r = int128_or(_r, int128_lshift( int128_and((_x), int128_lshift(_,  24)),  72)); \
+     _r = int128_or(_r, int128_lshift( int128_and((_x), int128_lshift(_,  32)),  56)); \
+     _r = int128_or(_r, int128_lshift( int128_and((_x), int128_lshift(_,  40)),  40)); \
+     _r = int128_or(_r, int128_lshift( int128_and((_x), int128_lshift(_,  48)),  24)); \
+     _r = int128_or(_r, int128_lshift( int128_and((_x), int128_lshift(_,  56)),   8)); \
+     _r = int128_or(_r, int128_urshift(int128_and((_x), int128_lshift(_,  64)),   8)); \
+     _r = int128_or(_r, int128_urshift(int128_and((_x), int128_lshift(_,  72)),  24)); \
+     _r = int128_or(_r, int128_urshift(int128_and((_x), int128_lshift(_,  80)),  40)); \
+     _r = int128_or(_r, int128_urshift(int128_and((_x), int128_lshift(_,  88)),  56)); \
+     _r = int128_or(_r, int128_urshift(int128_and((_x), int128_lshift(_,  96)),  72)); \
+     _r = int128_or(_r, int128_urshift(int128_and((_x), int128_lshift(_, 104)),  88)); \
+     _r = int128_or(_r, int128_urshift(int128_and((_x), int128_lshift(_, 112)), 104)); \
+          int128_or(_r, int128_urshift(int128_and((_x), int128_lshift(_, 120)), 120));})
 # define const_le64(_x)                          \
     ((((_x) & 0x00000000000000ffULL) << 56) |    \
      (((_x) & 0x000000000000ff00ULL) << 40) |    \
@@ -200,6 +230,7 @@ CPU_CONVERT(le, 64, uint64_t)
  *   24: 24 bits
  *   l: 32 bits
  *   q: 64 bits
+ *   o: 128 bits
  *
  * endian is:
  *   he   : host endian
@@ -296,6 +327,18 @@ static inline void stq_he_p(void *ptr, uint64_t v)
     __builtin_memcpy(ptr, &v, sizeof(v));
 }
 
+static inline Int128 ldo_he_p(const void *ptr)
+{
+    Int128 r;
+    __builtin_memcpy(&r, ptr, sizeof(r));
+    return r;
+}
+
+static inline void sto_he_p(void *ptr, Int128 v)
+{
+    __builtin_memcpy(ptr, &v, sizeof(v));
+}
+
 static inline int lduw_le_p(const void *ptr)
 {
     return (uint16_t)le_bswap(lduw_he_p(ptr), 16);
@@ -314,6 +357,11 @@ static inline int ldl_le_p(const void *ptr)
 static inline uint64_t ldq_le_p(const void *ptr)
 {
     return le_bswap(ldq_he_p(ptr), 64);
+}
+
+static inline Int128 ldo_le_p(const void *ptr)
+{
+    return le_bswap(ldo_he_p(ptr), 128);
 }
 
 static inline void stw_le_p(void *ptr, uint16_t v)
@@ -336,6 +384,11 @@ static inline void stq_le_p(void *ptr, uint64_t v)
     stq_he_p(ptr, le_bswap(v, 64));
 }
 
+static inline void sto_le_p(void *ptr, Int128 v)
+{
+    sto_he_p(ptr, le_bswap(v, 128));
+}
+
 static inline int lduw_be_p(const void *ptr)
 {
     return (uint16_t)be_bswap(lduw_he_p(ptr), 16);
@@ -356,6 +409,11 @@ static inline uint64_t ldq_be_p(const void *ptr)
     return be_bswap(ldq_he_p(ptr), 64);
 }
 
+static inline Int128 ldo_be_p(const void *ptr)
+{
+    return be_bswap(ldo_he_p(ptr), 128);
+}
+
 static inline void stw_be_p(void *ptr, uint16_t v)
 {
     stw_he_p(ptr, be_bswap(v, 16));
@@ -374,6 +432,11 @@ static inline void stl_be_p(void *ptr, uint32_t v)
 static inline void stq_be_p(void *ptr, uint64_t v)
 {
     stq_he_p(ptr, be_bswap(v, 64));
+}
+
+static inline void sto_be_p(void *ptr, Int128 v)
+{
+    sto_he_p(ptr, be_bswap(v, 128));
 }
 
 
@@ -526,6 +589,11 @@ static inline uint64_t ldq_p(const void *ptr)
     LOAD_IMPL(q, ptr);
 }
 
+static inline Int128 ldo_p(const void *ptr)
+{
+    LOAD_IMPL(o, ptr);
+}
+
 static inline uint64_t ldn_p(const void *ptr, int sz)
 {
     LOAD_IMPL(n, ptr, sz);
@@ -557,6 +625,11 @@ static inline void stl_p(void *ptr, uint32_t v)
 static inline void stq_p(void *ptr, uint64_t v)
 {
     STORE_IMPL(q, ptr, v);
+}
+
+static inline void sto_p(void *ptr, Int128 v)
+{
+    STORE_IMPL(o, ptr, v);
 }
 
 static inline void stn_p(void *ptr, int sz, uint64_t v)
