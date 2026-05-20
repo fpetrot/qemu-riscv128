@@ -64,18 +64,14 @@ static inline int gdb_get_reg64(GByteArray *buf, uint64_t val)
     return 8;
 }
 
-static inline int gdb_get_reg128(GByteArray *buf, uint64_t val_hi,
-                                 uint64_t val_lo)
+static inline int gdb_get_reg128(GByteArray *buf, Int128 val)
 {
-    uint64_t tmp[2];
     if (target_big_endian()) {
-        tmp[0] = cpu_to_be64(val_hi);
-        tmp[1] = cpu_to_be64(val_lo);
+        cpu_to_be128s(&val);
     } else {
-        tmp[0] = cpu_to_le64(val_lo);
-        tmp[1] = cpu_to_le64(val_hi);
+        cpu_to_le128s(&val);
     }
-    g_byte_array_append(buf, (uint8_t *)&tmp, 16);
+    g_byte_array_append(buf, (uint8_t *)&val, 16);
     return 16;
 }
 

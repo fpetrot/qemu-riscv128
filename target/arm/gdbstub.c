@@ -130,7 +130,7 @@ static int vfp_gdb_get_reg(CPUState *cs, GByteArray *buf, int reg)
         nregs += 16;
         if (reg < nregs) {
             uint64_t *q = aa32_vfp_qreg(env, reg - 32);
-            return gdb_get_reg128(buf, q[0], q[1]);
+            return gdb_get_reg128(buf, int128_make128(q[1], q[0]));
         }
     }
     switch (reg - nregs) {

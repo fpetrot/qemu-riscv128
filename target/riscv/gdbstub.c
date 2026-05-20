@@ -54,12 +54,18 @@ static uint64_t ldn(CPURISCVState *env, uint8_t *mem_buf, size_t regsz)
     return (mo_endian_env(env) == MO_LE ? ldn_le_p : ldn_be_p)(mem_buf, regsz);
 }
 
+static Int128 ldo(CPURISCVState *env, uint8_t *mem_buf)
+{
+    return (mo_endian_env(env) == MO_LE ? ldo_le_p : ldo_be_p)(mem_buf);
+}
+
 int riscv_cpu_gdb_read_register(CPUState *cs, GByteArray *mem_buf, int n)
 {
     RISCVCPUClass *mcc = RISCV_CPU_GET_CLASS(cs);
     RISCVCPU *cpu = RISCV_CPU(cs);
     CPURISCVState *env = &cpu->env;
     uint64_t tmp, tmph;
+    Int128 tmpx;
 
     if (n < 32) {
         tmp = env->gpr[n];
@@ -77,7 +83,8 @@ int riscv_cpu_gdb_read_register(CPUState *cs, GByteArray *mem_buf, int n)
     case MXL_RV64:
         return gdb_get_reg64(mem_buf, tmp);
     case MXL_RV128:
-        return gdb_get_reg128(mem_buf, tmph, tmp);
+        tmpx = int128_make128(tmp, tmph);
+        return gdb_get_reg128(mem_buf, tmpx);
     default:
         g_assert_not_reached();
     }
@@ -89,59 +96,31 @@ int riscv_cpu_gdb_write_register(CPUState *cs, uint8_t *mem_buf, int n)
     RISCVCPUClass *mcc = RISCV_CPU_GET_CLASS(cs);
     RISCVCPU *cpu = RISCV_CPU(cs);
     CPURISCVState *env = &cpu->env;
-#if 0
-<<<<<<< HEAD
-    const size_t regsize = mcc->def->misa_mxl_max == MXL_RV32 ? 4 : 8;
-    uint64_t tmp = ldn(env, mem_buf, regsize);
+    const size_t regsize = mcc->def->misa_mxl_max == MXL_RV32 ? 4 :
+                           mcc->def->misa_mxl_max == MXL_RV64 ? 8 : 16;
+    const size_t actualsize = env->xl == MXL_RV32 ? 4 :
+                              env->xl == MXL_RV64 ? 8 : 16;
+    Int128 tmp;
 
-    if (env->xl < MXL_RV64) {
-        tmp = (int32_t)tmp;
+    if (actualsize != 16) {
+        tmp = int128_make64(ldn(env, mem_buf, actualsize));
+    } else {
+        tmp = ldo(env, mem_buf);
     }
-=======
-#else
-    int length = 0;
-    uint64_t tmp, tmph = 0;
 
-    switch (mcc->def->misa_mxl_max) {
-    case MXL_RV32:
-        tmp = (int32_t)ldl_p(mem_buf);
-        length = 4;
-        break;
-    case MXL_RV64:
+    if (env->xl < MXL_RV128) {
+        uint64_t lo = int128_getlo(tmp);
         if (env->xl < MXL_RV64) {
-            tmp = (int32_t)ldq_p(mem_buf);
-        } else {
-            tmp = ldq_p(mem_buf);
+            lo = (int32_t)lo;
         }
-        length = 8;
-        break;
-    case MXL_RV128:
-        switch (env->xl) {
-        case MXL_RV32:
-            tmp = (int32_t)ldq_p(mem_buf);
-            break;
-        case MXL_RV64:
-            tmp = ldq_p(mem_buf);
-            break;
-        case MXL_RV128:
-            tmp = ldq_p(mem_buf);
-            tmph = ldq_p(mem_buf + 8);
-            break;
-        default:
-            g_assert_not_reached();
-        }
-        length = 16;
-        break;
-    default:
-        g_assert_not_reached();
+        tmp = int128_makes64(lo);
     }
-#endif
 
     if (n > 0 && n < 32) {
-        env->gpr[n] = tmp;
-        env->gprh[n] = tmph;
+        env->gpr[n] = int128_getlo(tmp);
+        env->gprh[n] = int128_gethi(tmp);
     } else if (n == 32) {
-        env->pc = tmp;
+        env->pc = int128_getlo(tmp);
     }
 
     return regsize;
@@ -415,8 +394,7 @@ void riscv_cpu_register_gdb_regs_for_features(CPUState *cs)
     case MXL_RV128:
         gdb_register_coprocessor(cs, riscv_gdb_get_virtual,
                                  riscv_gdb_set_virtual,
-                                 gdb_find_static_feature("riscv-128bit-virtual.xml"),
-                                 0);
+                                 gdb_find_static_feature("riscv-128bit-virtual.xml"));
         break;
     default:
         g_assert_not_reached();

@@ -94,7 +94,7 @@ int aarch64_gdb_get_fpu_reg(CPUState *cs, GByteArray *buf, int reg)
     {
         /* 128 bit FP register - quads are in LE order */
         uint64_t *q = aa64_vfp_qreg(env, reg);
-        return gdb_get_reg128(buf, q[1], q[0]);
+        return gdb_get_reg128(buf, int128_make128(q[0], q[1]));
     }
     case 32:
         /* FPSR */
@@ -160,8 +160,8 @@ int aarch64_gdb_get_sve_reg(CPUState *cs, GByteArray *buf, int reg)
         int vq, len = 0;
         for (vq = 0; vq < arm_max_vq(cpu); vq++) {
             len += gdb_get_reg128(buf,
-                                  env->vfp.zregs[reg].d[vq * 2 + 1],
-                                  env->vfp.zregs[reg].d[vq * 2]);
+                                  int128_make128(env->vfp.zregs[reg].d[vq * 2],
+                                                 env->vfp.zregs[reg].d[vq * 2 + 1]));
         }
         return len;
     }
@@ -277,8 +277,8 @@ int aarch64_gdb_get_sme_reg(CPUState *cs, GByteArray *buf, int reg)
         for (int i = 0; i < svl; i++) {
             for (int q = 0; q < vq; q++) {
                 len += gdb_get_reg128(buf,
-                                      env->za_state.za[i].d[q * 2 + 1],
-                                      env->za_state.za[i].d[q * 2]);
+                                      int128_make128(env->za_state.za[i].d[q * 2],
+                                                     env->za_state.za[i].d[q * 2 + 1]));
             }
         }
         return len;
@@ -344,8 +344,9 @@ int aarch64_gdb_get_sme2_reg(CPUState *cs, GByteArray *buf, int reg)
     switch (reg) {
     case 0: /* ZT0 */
         for (int i = 0; i < ARRAY_SIZE(env->za_state.zt0); i += 2) {
-            len += gdb_get_reg128(buf, env->za_state.zt0[i + 1],
-                                  env->za_state.zt0[i]);
+            len += gdb_get_reg128(buf,
+                                  int128_make128(env->za_state.zt0[i],
+                                                 env->za_state.zt0[i + 1]));
         }
         return len;
     default:

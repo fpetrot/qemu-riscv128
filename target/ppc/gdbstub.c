@@ -359,7 +359,7 @@ static int gdb_get_avr_reg(CPUState *cs, GByteArray *buf, int n)
 
     if (n < 32) {
         ppc_avr_t *avr = cpu_avr_ptr(env, n);
-        gdb_get_reg128(buf, avr->VsrD(0), avr->VsrD(1));
+        gdb_get_reg128(buf, int128_make128(avr->VsrD(1), avr->VsrD(0)));
         mem_buf = gdb_get_reg_ptr(buf, 16);
         ppc_maybe_bswap_register(env, mem_buf, 16);
         return 16;
