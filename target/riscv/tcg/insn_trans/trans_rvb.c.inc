@@ -340,6 +340,18 @@ static void gen_sh##SHAMT##add(TCGv ret, TCGv arg1, TCGv arg2) \
                                                                \
     tcg_gen_shli_tl(t, arg1, SHAMT);                           \
     tcg_gen_add_tl(ret, t, arg2);                              \
+}                                                              \
+                                                               \
+static void gen_sh##SHAMT##add_i128(TCGv retl, TCGv reth,      \
+                                    TCGv arg1l, TCGv arg1h,    \
+                                    TCGv arg2l, TCGv arg2h)    \
+{                                                              \
+    TCGv tl = tcg_temp_new();                                  \
+    TCGv th = tcg_temp_new();                                  \
+                                                               \
+    tcg_gen_extract2_tl(th, arg1l, arg1h, 64 - SHAMT);         \
+    tcg_gen_shli_tl(tl, arg1l, SHAMT);                         \
+    tcg_gen_add2_tl(retl, reth, arg2l, arg2h, tl, th);         \
 }
 
 GEN_SHADD(1)
@@ -350,7 +362,8 @@ GEN_SHADD(3)
 static bool trans_sh##SHAMT##add(DisasContext *ctx, arg_sh##SHAMT##add *a) \
 {                                                                          \
     REQUIRE_ZBA(ctx);                                                      \
-    return gen_arith(ctx, a, EXT_NONE, gen_sh##SHAMT##add, NULL);          \
+    return gen_arith(ctx, a, EXT_NONE, gen_sh##SHAMT##add,                 \
+                     gen_sh##SHAMT##add_i128);                             \
 }
 
 GEN_TRANS_SHADD(1)
@@ -427,6 +440,18 @@ static void gen_sh##SHAMT##add_uw(TCGv ret, TCGv arg1, TCGv arg2) \
                                                                   \
     tcg_gen_shli_tl(t, t, SHAMT);                                 \
     tcg_gen_add_tl(ret, t, arg2);                                 \
+}                                                                 \
+                                                                             \
+static void gen_sh##SHAMT##add_uw_i128(TCGv retl, TCGv reth,                 \
+                                       TCGv arg1l, TCGv arg1h G_GNUC_UNUSED, \
+                                       TCGv arg2l, TCGv arg2h)               \
+{                                                                            \
+    TCGv t = tcg_temp_new();                                                 \
+                                                                             \
+    tcg_gen_ext32u_tl(t, arg1l);                                             \
+                                                                             \
+    tcg_gen_shli_tl(t, t, SHAMT);                                            \
+    tcg_gen_add2_tl(retl, reth, arg2l, arg2h, t, tcg_constant_tl(0));        \
 }
 
 GEN_SHADD_UW(1)
@@ -437,14 +462,46 @@ GEN_SHADD_UW(3)
 static bool trans_sh##SHAMT##add_uw(DisasContext *ctx,        \
                                     arg_sh##SHAMT##add_uw *a) \
 {                                                             \
-    REQUIRE_64BIT(ctx);                                       \
+    REQUIRE_64_OR_128BIT(ctx);                                       \
     REQUIRE_ZBA(ctx);                                         \
-    return gen_arith(ctx, a, EXT_NONE, gen_sh##SHAMT##add_uw, NULL); \
+    return gen_arith(ctx, a, EXT_NONE, gen_sh##SHAMT##add_uw, \
+                     gen_sh##SHAMT##add_uw_i128);             \
 }
 
 GEN_TRANS_SHADD_UW(1)
 GEN_TRANS_SHADD_UW(2)
 GEN_TRANS_SHADD_UW(3)
+
+#define GEN_SHADD_UD(SHAMT)                                                  \
+static void gen_sh##SHAMT##add_ud_i128(TCGv retl, TCGv reth,                 \
+                                       TCGv arg1l, TCGv arg1h G_GNUC_UNUSED, \
+                                       TCGv arg2l, TCGv arg2h)               \
+{                                                                            \
+    TCGv tl = tcg_temp_new();                                                \
+    TCGv th = tcg_temp_new();                                                \
+                                                                             \
+    tcg_gen_shli_tl(tl, arg1l, SHAMT);                                       \
+    tcg_gen_shri_tl(th, arg1l, 64 - SHAMT);                                  \
+    tcg_gen_add2_tl(retl, reth, arg2l, arg2h, tl, th);                       \
+}
+
+GEN_SHADD_UD(1)
+GEN_SHADD_UD(2)
+GEN_SHADD_UD(3)
+
+#define GEN_TRANS_SHADD_UD(SHAMT)                             \
+static bool trans_sh##SHAMT##add_ud(DisasContext *ctx,        \
+                                    arg_sh##SHAMT##add_ud *a) \
+{                                                             \
+    REQUIRE_128BIT(ctx);                                      \
+    REQUIRE_ZBA(ctx);                                         \
+    return gen_arith(ctx, a, EXT_NONE, NULL,                  \
+                     gen_sh##SHAMT##add_ud_i128);             \
+}
+
+GEN_TRANS_SHADD_UD(1)
+GEN_TRANS_SHADD_UD(2)
+GEN_TRANS_SHADD_UD(3)
 
 static void gen_add_uw(TCGv ret, TCGv arg1, TCGv arg2)
 {
@@ -453,11 +510,34 @@ static void gen_add_uw(TCGv ret, TCGv arg1, TCGv arg2)
     tcg_gen_add_tl(ret, t, arg2);
 }
 
+static void gen_add_uw_i128(TCGv retl, TCGv reth,
+                            TCGv arg1l, TCGv arg1h G_GNUC_UNUSED,
+                            TCGv arg2l, TCGv arg2h)
+{
+    TCGv t = tcg_temp_new();
+    tcg_gen_ext32u_tl(t, arg1l);
+    tcg_gen_add2_tl(retl, reth, t, tcg_constant_tl(0), arg2l, arg2h);
+}
+
 static bool trans_add_uw(DisasContext *ctx, arg_add_uw *a)
 {
-    REQUIRE_64BIT(ctx);
+    REQUIRE_64_OR_128BIT(ctx);
     REQUIRE_ZBA(ctx);
-    return gen_arith(ctx, a, EXT_NONE, gen_add_uw, NULL);
+    return gen_arith(ctx, a, EXT_NONE, gen_add_uw, gen_add_uw_i128);
+}
+
+static void gen_add_ud(TCGv retl, TCGv reth,
+                       TCGv arg1l, TCGv arg1h G_GNUC_UNUSED,
+                       TCGv arg2l, TCGv arg2h)
+{
+    tcg_gen_add2_tl(retl, reth, arg1l, tcg_constant_tl(0), arg2l, arg2h);
+}
+
+static bool trans_add_ud(DisasContext *ctx, arg_add_ud *a)
+{
+    REQUIRE_128BIT(ctx);
+    REQUIRE_ZBA(ctx);
+    return gen_arith(ctx, a, EXT_NONE, NULL, gen_add_ud);
 }
 
 static void gen_slli_uw(TCGv dest, TCGv src, target_long shamt)
@@ -465,11 +545,50 @@ static void gen_slli_uw(TCGv dest, TCGv src, target_long shamt)
     tcg_gen_deposit_z_tl(dest, src, shamt, MIN(32, TARGET_LONG_BITS - shamt));
 }
 
+static void gen_slli_uw_i128(TCGv destl, TCGv desth,
+                             TCGv src1l, TCGv src1h G_GNUC_UNUSED,
+                             target_long shamt)
+{
+    TCGv t = tcg_temp_new();
+    tcg_gen_andi_tl(t, src1l, (1ull << 32) - 1);
+    if (shamt < 32) {
+        tcg_gen_movi_tl(desth, 0);
+        tcg_gen_shli_tl(destl, t, shamt);
+    } else if (shamt >= 64) {
+        tcg_gen_shli_tl(desth, t, shamt - 64);
+        tcg_gen_movi_tl(destl, 0);
+    } else {
+        tcg_gen_extract2_tl(desth, t, tcg_constant_tl(0), 64 - shamt);
+        tcg_gen_shli_tl(destl, t, shamt);
+    }
+}
+
 static bool trans_slli_uw(DisasContext *ctx, arg_slli_uw *a)
 {
-    REQUIRE_64BIT(ctx);
+    REQUIRE_64_OR_128BIT(ctx);
     REQUIRE_ZBA(ctx);
-    return gen_shift_imm_fn(ctx, a, EXT_NONE, gen_slli_uw, NULL);
+    return gen_shift_imm_fn(ctx, a, EXT_NONE, gen_slli_uw, 
+                            gen_slli_uw_i128);
+}
+
+static void gen_slli_ud_i128(TCGv destl, TCGv desth,
+                             TCGv src1l, TCGv src1h G_GNUC_UNUSED,
+                             target_long shamt)
+{
+    if (shamt >= 64) {
+        tcg_gen_shli_tl(desth, src1l, shamt - 64);
+        tcg_gen_movi_tl(destl, 0);
+    } else {
+        tcg_gen_extract2_tl(desth, src1l, tcg_constant_tl(0), 64 - shamt);
+        tcg_gen_shli_tl(destl, src1l, shamt);
+    }
+}
+
+static bool trans_slli_ud(DisasContext *ctx, arg_slli_ud *a)
+{
+    REQUIRE_128BIT(ctx);
+    REQUIRE_ZBA(ctx);
+    return gen_shift_imm_fn(ctx, a, EXT_NONE, NULL, gen_slli_ud_i128);
 }
 
 static bool trans_clmul(DisasContext *ctx, arg_clmul *a)
