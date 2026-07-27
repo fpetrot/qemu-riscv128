@@ -162,16 +162,56 @@ static void gen_bset(TCGv ret, TCGv arg1, TCGv shamt)
     tcg_gen_or_tl(ret, arg1, t);
 }
 
+static void gen_bset_i128(TCGv retl, TCGv reth,
+                          TCGv src1l, TCGv src1h, TCGv shamt)
+{
+    TCGv hs = tcg_temp_new();
+    TCGv rs = tcg_temp_new();
+    TCGv vl = tcg_temp_new();
+    TCGv vh = tcg_temp_new();
+    TCGv zero = tcg_constant_tl(0);
+    TCGv one = tcg_constant_tl(1);
+
+    tcg_gen_andi_tl(hs, shamt, 64);
+    tcg_gen_subi_tl(rs, shamt, 64);
+
+    tcg_gen_shl_tl(vl, one, shamt);
+    tcg_gen_shl_tl(vh, one, rs);
+
+    tcg_gen_movcond_tl(TCG_COND_NE, vl, hs, zero, zero, vl);
+    tcg_gen_movcond_tl(TCG_COND_NE, vh, hs, zero, vh, zero);
+
+    tcg_gen_or_tl(retl, src1l, vl);
+    tcg_gen_or_tl(reth, src1h, vh);
+}
+
 static bool trans_bset(DisasContext *ctx, arg_bset *a)
 {
     REQUIRE_ZBS(ctx);
-    return gen_shift(ctx, a, EXT_NONE, gen_bset, NULL);
+    return gen_shift(ctx, a, EXT_NONE, gen_bset, gen_bset_i128);
+}
+
+static void gen_bseti(TCGv ret, TCGv arg1, target_long shamt)
+{
+    tcg_gen_ori_tl(ret, arg1, 1ULL << shamt);
+}
+
+static void gen_bseti_i128(TCGv retl, TCGv reth,
+                           TCGv src1l, TCGv src1h, target_long shamt)
+{
+    if (shamt >= 64) {
+        tcg_gen_mov_tl(retl, src1l);
+        tcg_gen_ori_tl(reth, src1h, 1ULL << (shamt - 64));
+    } else {
+        tcg_gen_ori_tl(retl, src1l, 1ULL << shamt);
+        tcg_gen_mov_tl(reth, src1h);
+    }
 }
 
 static bool trans_bseti(DisasContext *ctx, arg_bseti *a)
 {
     REQUIRE_ZBS(ctx);
-    return gen_shift_imm_tl(ctx, a, EXT_NONE, gen_bset);
+    return gen_shift_imm_fn(ctx, a, EXT_NONE, gen_bseti, gen_bseti_i128);
 }
 
 static void gen_bclr(TCGv ret, TCGv arg1, TCGv shamt)
@@ -182,16 +222,56 @@ static void gen_bclr(TCGv ret, TCGv arg1, TCGv shamt)
     tcg_gen_andc_tl(ret, arg1, t);
 }
 
+static void gen_bclr_i128(TCGv retl, TCGv reth,
+                          TCGv src1l, TCGv src1h, TCGv shamt)
+{
+    TCGv hs = tcg_temp_new();
+    TCGv rs = tcg_temp_new();
+    TCGv vl = tcg_temp_new();
+    TCGv vh = tcg_temp_new();
+    TCGv zero = tcg_constant_tl(0);
+    TCGv one = tcg_constant_tl(1);
+
+    tcg_gen_andi_tl(hs, shamt, 64);
+    tcg_gen_subi_tl(rs, shamt, 64);
+
+    tcg_gen_shl_tl(vl, one, shamt);
+    tcg_gen_shl_tl(vh, one, rs);
+
+    tcg_gen_movcond_tl(TCG_COND_NE, vl, hs, zero, zero, vl);
+    tcg_gen_movcond_tl(TCG_COND_NE, vh, hs, zero, vh, zero);
+
+    tcg_gen_andc_tl(retl, src1l, vl);
+    tcg_gen_andc_tl(reth, src1h, vh);
+}
+
 static bool trans_bclr(DisasContext *ctx, arg_bclr *a)
 {
     REQUIRE_ZBS(ctx);
-    return gen_shift(ctx, a, EXT_NONE, gen_bclr, NULL);
+    return gen_shift(ctx, a, EXT_NONE, gen_bclr, gen_bclr_i128);
+}
+
+static void gen_bclri(TCGv ret, TCGv arg1, target_long shamt)
+{
+    tcg_gen_andi_tl(ret, arg1, ~(1ULL << shamt));
+}
+
+static void gen_bclri_i128(TCGv retl, TCGv reth,
+                           TCGv src1l, TCGv src1h, target_long shamt)
+{
+    if (shamt >= 64) {
+        tcg_gen_mov_tl(retl, src1l);
+        tcg_gen_andi_tl(reth, src1h, ~(1ULL << (shamt - 64)));
+    } else {
+        tcg_gen_andi_tl(retl, src1l, ~(1ULL << shamt));
+        tcg_gen_mov_tl(reth, src1h);
+    }
 }
 
 static bool trans_bclri(DisasContext *ctx, arg_bclri *a)
 {
     REQUIRE_ZBS(ctx);
-    return gen_shift_imm_tl(ctx, a, EXT_NONE, gen_bclr);
+    return gen_shift_imm_fn(ctx, a, EXT_NONE, gen_bclri, gen_bclri_i128);
 }
 
 static void gen_binv(TCGv ret, TCGv arg1, TCGv shamt)
@@ -202,16 +282,56 @@ static void gen_binv(TCGv ret, TCGv arg1, TCGv shamt)
     tcg_gen_xor_tl(ret, arg1, t);
 }
 
+static void gen_binv_i128(TCGv retl, TCGv reth,
+                          TCGv src1l, TCGv src1h, TCGv shamt)
+{
+    TCGv hs = tcg_temp_new();
+    TCGv rs = tcg_temp_new();
+    TCGv vl = tcg_temp_new();
+    TCGv vh = tcg_temp_new();
+    TCGv zero = tcg_constant_tl(0);
+    TCGv one = tcg_constant_tl(1);
+
+    tcg_gen_andi_tl(hs, shamt, 64);
+    tcg_gen_subi_tl(rs, shamt, 64);
+
+    tcg_gen_shl_tl(vl, one, shamt);
+    tcg_gen_shl_tl(vh, one, rs);
+
+    tcg_gen_movcond_tl(TCG_COND_NE, vl, hs, zero, zero, vl);
+    tcg_gen_movcond_tl(TCG_COND_NE, vh, hs, zero, vh, zero);
+
+    tcg_gen_xor_tl(retl, src1l, vl);
+    tcg_gen_xor_tl(reth, src1h, vh);
+}
+
 static bool trans_binv(DisasContext *ctx, arg_binv *a)
 {
     REQUIRE_ZBS(ctx);
-    return gen_shift(ctx, a, EXT_NONE, gen_binv, NULL);
+    return gen_shift(ctx, a, EXT_NONE, gen_binv, gen_binv_i128);
+}
+
+static void gen_binvi(TCGv ret, TCGv arg1, target_long shamt)
+{
+    tcg_gen_xori_tl(ret, arg1, 1ULL << shamt);
+}
+
+static void gen_binvi_i128(TCGv retl, TCGv reth,
+                           TCGv src1l, TCGv src1h, target_long shamt)
+{
+    if (shamt >= 64) {
+        tcg_gen_mov_tl(retl, src1l);
+        tcg_gen_xori_tl(reth, src1h, 1ULL << (shamt - 64));
+    } else {
+        tcg_gen_xori_tl(retl, src1l, 1ULL << shamt);
+        tcg_gen_mov_tl(reth, src1h);
+    }
 }
 
 static bool trans_binvi(DisasContext *ctx, arg_binvi *a)
 {
     REQUIRE_ZBS(ctx);
-    return gen_shift_imm_tl(ctx, a, EXT_NONE, gen_binv);
+    return gen_shift_imm_fn(ctx, a, EXT_NONE, gen_binvi, gen_binvi_i128);
 }
 
 static void gen_bext(TCGv ret, TCGv arg1, TCGv shamt)
@@ -220,16 +340,55 @@ static void gen_bext(TCGv ret, TCGv arg1, TCGv shamt)
     tcg_gen_andi_tl(ret, ret, 1);
 }
 
+static void gen_bext_i128(TCGv retl, TCGv reth,
+                          TCGv src1l, TCGv src1h, TCGv shamt)
+{
+    TCGv hs = tcg_temp_new();
+    TCGv rs = tcg_temp_new();
+    TCGv vl = tcg_temp_new();
+    TCGv vh = tcg_temp_new();
+    TCGv zero = tcg_constant_tl(0);
+
+    tcg_gen_andi_tl(hs, shamt, 64);
+    tcg_gen_subi_tl(rs, shamt, 64);
+
+    tcg_gen_shr_tl(vl, src1l, shamt);
+    tcg_gen_shr_tl(vh, src1h, rs);
+
+    tcg_gen_movcond_tl(TCG_COND_NE, retl, hs, zero, vh, vl);
+    tcg_gen_andi_tl(retl, retl, 1);
+    tcg_gen_movi_tl(reth, 0);
+}
+
 static bool trans_bext(DisasContext *ctx, arg_bext *a)
 {
     REQUIRE_ZBS(ctx);
-    return gen_shift(ctx, a, EXT_NONE, gen_bext, NULL);
+    return gen_shift(ctx, a, EXT_NONE, gen_bext, gen_bext_i128);
+}
+
+static void gen_bexti(TCGv ret, TCGv arg1, target_long shamt)
+{
+    tcg_gen_shri_tl(ret, arg1, shamt);
+    tcg_gen_andi_tl(ret, ret, 1);
+}
+
+static void gen_bexti_i128(TCGv retl, TCGv reth,
+                           TCGv src1l, TCGv src1h, target_long shamt)
+{
+    if (shamt >= 64) {
+        tcg_gen_shri_tl(retl, src1h, shamt - 64);
+    } else {
+        tcg_gen_shri_tl(retl, src1l, shamt);
+    }
+
+    tcg_gen_andi_tl(retl, retl, 1);
+    tcg_gen_movi_tl(reth, 0);
 }
 
 static bool trans_bexti(DisasContext *ctx, arg_bexti *a)
 {
     REQUIRE_ZBS(ctx);
-    return gen_shift_imm_tl(ctx, a, EXT_NONE, gen_bext);
+    return gen_shift_imm_fn(ctx, a, EXT_NONE, gen_bexti, gen_bexti_i128);
 }
 
 static void gen_rorw(TCGv ret, TCGv arg1, TCGv arg2)
@@ -550,7 +709,7 @@ static void gen_slli_uw_i128(TCGv destl, TCGv desth,
                              target_long shamt)
 {
     TCGv t = tcg_temp_new();
-    tcg_gen_andi_tl(t, src1l, (1ull << 32) - 1);
+    tcg_gen_andi_tl(t, src1l, (1ULL << 32) - 1);
     if (shamt < 32) {
         tcg_gen_movi_tl(desth, 0);
         tcg_gen_shli_tl(destl, t, shamt);
