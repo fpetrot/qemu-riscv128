@@ -406,10 +406,44 @@ static void gen_rorw(TCGv ret, TCGv arg1, TCGv arg2)
     tcg_gen_ext_i32_tl(ret, t1);
 }
 
+static void gen_ror_i128(TCGv destl, TCGv desth,
+                         TCGv src1l, TCGv src1h, TCGv shamt)
+{
+    TCGv ls = tcg_temp_new();
+    TCGv rs = tcg_temp_new();
+    TCGv hs = tcg_temp_new();
+    TCGv ll = tcg_temp_new();
+    TCGv lr = tcg_temp_new();
+    TCGv h0 = tcg_temp_new();
+    TCGv h1 = tcg_temp_new();
+    TCGv hl = tcg_temp_new();
+    TCGv hr = tcg_temp_new();
+    TCGv zero = tcg_constant_tl(0);
+
+    tcg_gen_andi_tl(hs, shamt, 64);
+    tcg_gen_andi_tl(rs, shamt, 63);
+    tcg_gen_neg_tl(shamt, shamt);
+    tcg_gen_andi_tl(ls, shamt, 63);
+
+    tcg_gen_shr_tl(lr, src1l, rs);
+    tcg_gen_shl_tl(ll, src1h, ls);
+    tcg_gen_shr_tl(hr, src1h, rs);
+    tcg_gen_shl_tl(hl, src1l, ls);
+
+    tcg_gen_movcond_tl(TCG_COND_NE, ll, ls, zero, ll, zero);
+    tcg_gen_or_tl(h0, ll, lr);
+    tcg_gen_movcond_tl(TCG_COND_NE, hl, ls, zero, hl, zero);
+    tcg_gen_or_tl(h1, hl, hr);
+
+    tcg_gen_movcond_tl(TCG_COND_NE, destl, hs, zero, h1, h0);
+    tcg_gen_movcond_tl(TCG_COND_NE, desth, hs, zero, h0, h1);
+}
+
 static bool trans_ror(DisasContext *ctx, arg_ror *a)
 {
     REQUIRE_EITHER_EXT(ctx, zbb, zbkb);
-    return gen_shift_per_ol(ctx, a, EXT_NONE, tcg_gen_rotr_tl, gen_rorw, NULL);
+    return gen_shift_per_ol(ctx, a, EXT_NONE, tcg_gen_rotr_tl, gen_rorw,
+                            gen_ror_i128);
 }
 
 static void gen_roriw(TCGv ret, TCGv arg1, target_long shamt)
@@ -421,11 +455,31 @@ static void gen_roriw(TCGv ret, TCGv arg1, target_long shamt)
     tcg_gen_ext_i32_tl(ret, t1);
 }
 
+static void gen_rori_i128(TCGv retl, TCGv reth,
+                          TCGv src1l, TCGv src1h,
+                          target_long shamt)
+{
+    TCGv l = tcg_temp_new();
+    TCGv r = tcg_temp_new();
+
+    if (shamt >= 64) {
+        tcg_gen_shri_tl(r, src1h, shamt - 64);
+        tcg_gen_shli_tl(l, src1l, 128 - shamt);
+        tcg_gen_or_tl(retl, l, r);
+        tcg_gen_extract2_tl(reth, src1l, src1h, 128 - shamt);
+    } else {
+        tcg_gen_extract2_tl(retl, src1l, src1h, shamt);
+        tcg_gen_shri_tl(r, src1h, shamt);
+        tcg_gen_shli_tl(l, src1l, 64 - shamt);
+        tcg_gen_or_tl(reth, l, r);
+    }
+}
+
 static bool trans_rori(DisasContext *ctx, arg_rori *a)
 {
     REQUIRE_EITHER_EXT(ctx, zbb, zbkb);
     return gen_shift_imm_fn_per_ol(ctx, a, EXT_NONE,
-                                   tcg_gen_rotri_tl, gen_roriw, NULL);
+                                   tcg_gen_rotri_tl, gen_roriw, gen_rori_i128);
 }
 
 static void gen_rolw(TCGv ret, TCGv arg1, TCGv arg2)
@@ -443,10 +497,44 @@ static void gen_rolw(TCGv ret, TCGv arg1, TCGv arg2)
     tcg_gen_ext_i32_tl(ret, t1);
 }
 
+static void gen_rol_i128(TCGv destl, TCGv desth,
+                         TCGv src1l, TCGv src1h, TCGv shamt)
+{
+    TCGv ls = tcg_temp_new();
+    TCGv rs = tcg_temp_new();
+    TCGv hs = tcg_temp_new();
+    TCGv ll = tcg_temp_new();
+    TCGv lr = tcg_temp_new();
+    TCGv h0 = tcg_temp_new();
+    TCGv h1 = tcg_temp_new();
+    TCGv hl = tcg_temp_new();
+    TCGv hr = tcg_temp_new();
+    TCGv zero = tcg_constant_tl(0);
+
+    tcg_gen_andi_tl(hs, shamt, 64);
+    tcg_gen_andi_tl(ls, shamt, 63);
+    tcg_gen_neg_tl(shamt, shamt);
+    tcg_gen_andi_tl(rs, shamt, 63);
+
+    tcg_gen_shl_tl(ll, src1l, ls);
+    tcg_gen_shr_tl(lr, src1h, rs);
+    tcg_gen_shl_tl(hl, src1h, ls);
+    tcg_gen_shr_tl(hr, src1l, rs);
+
+    tcg_gen_movcond_tl(TCG_COND_NE, lr, ls, zero, lr, zero);
+    tcg_gen_or_tl(h0, ll, lr);
+    tcg_gen_movcond_tl(TCG_COND_NE, hr, ls, zero, hr, zero);
+    tcg_gen_or_tl(h1, hl, hr);
+
+    tcg_gen_movcond_tl(TCG_COND_NE, destl, hs, zero, h1, h0);
+    tcg_gen_movcond_tl(TCG_COND_NE, desth, hs, zero, h0, h1);
+}
+
 static bool trans_rol(DisasContext *ctx, arg_rol *a)
 {
     REQUIRE_EITHER_EXT(ctx, zbb, zbkb);
-    return gen_shift_per_ol(ctx, a, EXT_NONE, tcg_gen_rotl_tl, gen_rolw, NULL);
+    return gen_shift_per_ol(ctx, a, EXT_NONE, tcg_gen_rotl_tl, gen_rolw,
+                            gen_rol_i128);
 }
 
 static void gen_rev8_32(TCGv ret, TCGv src1)
